@@ -1,5 +1,5 @@
 # Snipsnip
-Simple client/server which can be used to forward clipboard and browse comamnds
+Simple client/server which can be used to forward clipboard and browse commands
 to your VM's host.
 
 Client:
