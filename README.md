@@ -24,3 +24,8 @@ optional arguments:
   --port PORT
   --host HOST
 ```
+
+To install, simply run:
+```
+pip install snipsnip
+```
