@@ -4,13 +4,14 @@ to your VM's host.
 
 Client:
 ```
-usage: snipsnip client [-h] [--port PORT] [--host HOST] {copy,paste,open} ...
+usage: snipsnip client [-h] [--port PORT] [--host HOST]
+                       {copy,paste,say,open} ...
 
 positional arguments:
-  {copy,paste,open}
+  {copy,paste,say,open}
 
 optional arguments:
-  -h, --help         show this help message and exit
+  -h, --help            show this help message and exit
   --port PORT
   --host HOST
 ```
