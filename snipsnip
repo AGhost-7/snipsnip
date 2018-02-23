@@ -36,6 +36,8 @@ def parse_arguments():
 
     client_subparsers.add_parser('copy')
     client_subparsers.add_parser('paste')
+    say_parser = client_subparsers.add_parser('say')
+    say_parser.add_argument('content', nargs='*')
     open_parser = client_subparsers.add_parser('open')
     open_parser.add_argument('url')
 
@@ -57,7 +59,7 @@ class ServerHandler(socketserver.StreamRequestHandler):
         response = {'error': False}
         try:
             message = json.loads(self.data)
-            debug('message {}'.format(message))
+            debug('message {}', message)
             if message['command'] == 'copy':
                 proc = Popen(['pbcopy'], stdin=PIPE, stderr=PIPE)
                 proc.stdin.write(message['content'])
@@ -67,13 +69,18 @@ class ServerHandler(socketserver.StreamRequestHandler):
                 proc = Popen(['pbpaste'], stdout=PIPE, stderr=PIPE)
                 response['content'] = proc.stdout.read()
                 self._wait(response, proc)
+            elif message['command'] == 'say':
+                proc = Popen(['say', message['content']], stderr=PIPE)
+                self._wait(response, proc)
             elif message['command'] == 'open':
                 proc = Popen(
                     ['open', message['url']], stdout=PIPE, stderr=PIPE)
                 self._wait(response, proc)
         except Exception:
             response['error'] = True
-            response['message'] = str(sys.exc_info())
+            trace = str(sys.exc_info())
+            print(trace)
+            response['message'] = trace
         self.wfile.write(json.dumps(response) + '\n')
 
 
@@ -118,13 +125,12 @@ def request(args, message):
 
 def send_command(args):
     command = args.command
-    if command not in ('copy', 'paste', 'open'):
-        raise Exception('Invalid command ' + args.command)
-
     message = {'command': command}
 
     if command == 'copy':
         message['content'] = sys.stdin.read()
+    elif command == 'say':
+        message['content'] = ' '.join(args.content)
     elif command == 'open':
         message['url'] = args.url
 
