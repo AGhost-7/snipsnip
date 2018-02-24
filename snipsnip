@@ -8,6 +8,7 @@ import os
 from subprocess import Popen, PIPE
 import sys
 import socket
+import uuid
 
 try:
     import socketserver
@@ -40,6 +41,8 @@ def parse_arguments():
     say_parser.add_argument('content', nargs='*')
     open_parser = client_subparsers.add_parser('open')
     open_parser.add_argument('url')
+    youtube_parser = client_subparsers.add_parser('youtube')
+    youtube_parser.add_argument('url')
 
     args = parser.parse_args()
 
@@ -53,6 +56,28 @@ class ServerHandler(socketserver.StreamRequestHandler):
         if proc.returncode != 0:
             response['message'] = proc.stderr.read()
             response['error'] = True
+        return proc.returncode
+
+    def _play_youtube(self, response, url):
+        from pytube import YouTube
+        yt = YouTube(url)
+        file_name = str(uuid.uuid4())
+        mp3_path = '/tmp/' + file_name + '.mp3'
+        mp4_path = '/tmp/' + file_name + '.mp4'
+        yt.streams.filter(only_audio=True).first().download(
+            output_path='/tmp',
+            filename=file_name)
+        proc = Popen(
+            ['ffmpeg', '-i', mp4_path, mp3_path],
+            stderr=PIPE)
+        if self._wait(response, proc) == 0:
+            proc = Popen(['afplay', mp3_path], stderr=PIPE)
+            self._wait(response, proc)
+            os.remove(mp3_path)
+            os.remove(mp4_path)
+        else:
+            os.remove(mp4_path)
+
 
     def handle(self):
         self.data = self.rfile.readline().strip()
@@ -76,6 +101,8 @@ class ServerHandler(socketserver.StreamRequestHandler):
                 proc = Popen(
                     ['open', message['url']], stdout=PIPE, stderr=PIPE)
                 self._wait(response, proc)
+            elif message['command'] == 'youtube':
+                self._play_youtube(response, message['url'])
         except Exception:
             response['error'] = True
             trace = str(sys.exc_info())
@@ -131,7 +158,7 @@ def send_command(args):
         message['content'] = sys.stdin.read()
     elif command == 'say':
         message['content'] = ' '.join(args.content)
-    elif command == 'open':
+    elif command == 'open' or command == 'youtube':
         message['url'] = args.url
 
     response = request(args, message)
