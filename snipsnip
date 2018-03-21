@@ -9,6 +9,9 @@ from subprocess import Popen, PIPE
 import sys
 import socket
 import uuid
+import codecs
+
+UTF8Writer = codecs.getwriter('utf-8')
 
 try:
     import socketserver
@@ -78,7 +81,6 @@ class ServerHandler(socketserver.StreamRequestHandler):
         else:
             os.remove(mp4_path)
 
-
     def handle(self):
         self.data = self.rfile.readline().strip()
         response = {'error': False}
@@ -87,8 +89,9 @@ class ServerHandler(socketserver.StreamRequestHandler):
             debug('message {}', message)
             if message['command'] == 'copy':
                 proc = Popen(['pbcopy'], stdin=PIPE, stderr=PIPE)
-                proc.stdin.write(message['content'])
-                proc.stdin.close()
+                stdin = UTF8Writer(proc.stdin)
+                stdin.write(message['content'])
+                stdin.close()
                 self._wait(response, proc)
             elif message['command'] == 'paste':
                 proc = Popen(['pbpaste'], stdout=PIPE, stderr=PIPE)
