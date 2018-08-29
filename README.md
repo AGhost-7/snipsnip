@@ -5,7 +5,7 @@ to your VM's host.
 Client:
 ```
 usage: snipsnip client [-h] [--port PORT] [--host HOST]
-                       {copy,paste,say,open,youtube} ...
+                       {copy,paste,say,open} ...
 
 positional arguments:
   {copy,paste,say,open,youtube}
@@ -29,11 +29,4 @@ optional arguments:
 To install, simply run:
 ```
 pip install snipsnip
-```
-
-## Youtube Sound Playback
-For the Youtube playback to work you will need to have `ffmpeg` of installed.
-You can install it using brew:
-```sh
-brew install ffmpeg
 ```

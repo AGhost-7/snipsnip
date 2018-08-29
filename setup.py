@@ -10,4 +10,4 @@ setup(
     license='MIT',
     scripts=['snipsnip'],
     zip_safe=False,
-    install_requires=['pytube'])
+    install_requires=[])
