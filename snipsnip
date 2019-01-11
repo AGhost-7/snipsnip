@@ -12,6 +12,8 @@ import codecs
 
 UTF8Writer = codecs.getwriter('utf-8')
 
+python_3 = sys.version_info.major == 3
+
 try:
     import socketserver
 except ImportError:
@@ -73,6 +75,8 @@ class ServerHandler(socketserver.StreamRequestHandler):
             elif message['command'] == 'paste':
                 proc = Popen(['pbpaste'], stdout=PIPE, stderr=PIPE)
                 response['content'] = proc.stdout.read()
+                if python_3:
+                  response['content'] = str(response['content'], 'utf-8')
                 self._wait(response, proc)
             elif message['command'] == 'say':
                 proc = Popen(['say', message['content']], stderr=PIPE)
@@ -86,7 +90,11 @@ class ServerHandler(socketserver.StreamRequestHandler):
             trace = str(sys.exc_info())
             print(trace)
             response['message'] = trace
-        self.wfile.write(json.dumps(response) + '\n')
+
+        payload = json.dumps(response) + '\n'
+        if python_3:
+          payload = bytes(payload, 'utf-8')
+        self.wfile.write(payload)
 
 
 def listen(args):
@@ -105,7 +113,7 @@ def request(args, message):
     try:
 
         sock.connect((args.host, args.port))
-        if sys.version_info.major == 3:
+        if python_3:
             serialized = bytes(json.dumps(message) + '\n', 'utf-8')
         else:
             serialized = json.dumps(message) + '\n'
@@ -115,7 +123,7 @@ def request(args, message):
         buf = ''
         linefeed = False
         while not linefeed:
-            if sys.version_info.major == 3:
+            if python_3:
                 received = str(sock.recv(1024), 'utf-8')
             else:
                 received = sock.recv(1024)

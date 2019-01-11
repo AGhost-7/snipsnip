@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='snipsnip',
-    version='0.4',
+    version='0.5',
     description='Remote mac clipboard',
     url='http://github.com/AGhost-7/snipsnip',
     author='Jonathan Boudreau',
