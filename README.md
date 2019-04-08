@@ -8,7 +8,7 @@ usage: snipsnip client [-h] [--port PORT] [--host HOST]
                        {copy,paste,say,open} ...
 
 positional arguments:
-  {copy,paste,say,open,youtube}
+  {copy,paste,say,open}
 
 optional arguments:
   -h, --help            show this help message and exit

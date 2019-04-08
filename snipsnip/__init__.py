@@ -5,19 +5,10 @@ from __future__ import print_function
 from argparse import ArgumentParser
 import json
 import os
-from subprocess import Popen, PIPE
 import sys
 import socket
-import codecs
-
-UTF8Writer = codecs.getwriter('utf-8')
-
-python_3 = sys.version_info.major == 3
-
-try:
-    import socketserver
-except ImportError:
-    import SocketServer as socketserver
+import socketserver
+from .desktop import desktop
 
 
 def debug(message, *args):
@@ -46,19 +37,17 @@ def parse_arguments():
     open_parser = client_subparsers.add_parser('open')
     open_parser.add_argument('url')
 
+    subparsers.add_parser('copy')
+    subparsers.add_parser('paste')
+    open_parser = subparsers.add_parser('open')
+    open_parser.add_argument('url')
+
     args = parser.parse_args()
 
     return args
 
 
 class ServerHandler(socketserver.StreamRequestHandler):
-
-    def _wait(self, response, proc):
-        proc.wait()
-        if proc.returncode != 0:
-            response['message'] = proc.stderr.read()
-            response['error'] = True
-        return proc.returncode
 
     def handle(self):
         self.data = self.rfile.readline().strip()
@@ -67,24 +56,11 @@ class ServerHandler(socketserver.StreamRequestHandler):
             message = json.loads(self.data)
             debug('message {}', message)
             if message['command'] == 'copy':
-                proc = Popen(['pbcopy'], stdin=PIPE, stderr=PIPE)
-                stdin = UTF8Writer(proc.stdin)
-                stdin.write(message['content'])
-                stdin.close()
-                self._wait(response, proc)
+                desktop.copy(message['content'])
             elif message['command'] == 'paste':
-                proc = Popen(['pbpaste'], stdout=PIPE, stderr=PIPE)
-                response['content'] = proc.stdout.read()
-                if python_3:
-                  response['content'] = str(response['content'], 'utf-8')
-                self._wait(response, proc)
-            elif message['command'] == 'say':
-                proc = Popen(['say', message['content']], stderr=PIPE)
-                self._wait(response, proc)
+                response['content'] = desktop.paste()
             elif message['command'] == 'open':
-                proc = Popen(
-                    ['open', message['url']], stdout=PIPE, stderr=PIPE)
-                self._wait(response, proc)
+                desktop.open(message['url'])
         except Exception:
             response['error'] = True
             trace = str(sys.exc_info())
@@ -92,9 +68,7 @@ class ServerHandler(socketserver.StreamRequestHandler):
             response['message'] = trace
 
         payload = json.dumps(response) + '\n'
-        if python_3:
-          payload = bytes(payload, 'utf-8')
-        self.wfile.write(payload)
+        self.wfile.write(bytes(payload, 'utf-8'))
 
 
 def listen(args):
@@ -113,20 +87,14 @@ def request(args, message):
     try:
 
         sock.connect((args.host, args.port))
-        if python_3:
-            serialized = bytes(json.dumps(message) + '\n', 'utf-8')
-        else:
-            serialized = json.dumps(message) + '\n'
+        serialized = bytes(json.dumps(message) + '\n', 'utf-8')
 
         sock.sendall(serialized)
 
         buf = ''
         linefeed = False
         while not linefeed:
-            if python_3:
-                received = str(sock.recv(1024), 'utf-8')
-            else:
-                received = sock.recv(1024)
+            received = str(sock.recv(1024), 'utf-8')
             if '\n' in received:
                 linefeed = True
                 buf += received
@@ -159,9 +127,18 @@ def send_command(args):
         sys.stdout.write(response['content'])
 
 
-args = parse_arguments()
+def main():
+    args = parse_arguments()
 
-if args.mode == 'server':
-    listen(args)
-elif args.mode == 'client':
-    send_command(args)
+    if args.mode == 'server':
+        listen(args)
+    elif args.mode == 'client':
+        send_command(args)
+    elif args.mode == 'paste':
+        text = desktop.paste()
+        sys.stdout.write(text)
+    elif args.mode == 'copy':
+        content = sys.stdin.read()
+        desktop.copy(content)
+    elif args.mode == 'open':
+        desktop.open(args.url)
