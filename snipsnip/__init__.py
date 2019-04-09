@@ -4,16 +4,12 @@ from __future__ import print_function
 
 from argparse import ArgumentParser
 import json
-import os
 import sys
 import socket
-import socketserver
 from .desktop import desktop
-
-
-def debug(message, *args):
-    if os.environ.get('SNIP_DEBUG') == '1':
-        print(message.format(*args))
+from os import path, environ
+from .server import listen
+from .debug import debug
 
 
 def parse_arguments():
@@ -47,39 +43,33 @@ def parse_arguments():
     return args
 
 
-class ServerHandler(socketserver.StreamRequestHandler):
+def parse_xclip_arguments():
+    parser = ArgumentParser()
+    parser.add_argument(
+        '-in',
+        '-i',
+        action='store_const',
+        dest='mode',
+        const=True,
+        default=False)
+    parser.add_argument(
+        '-out',
+        '-o',
+        action='store_const',
+        dest='mode',
+        const='paste')
+    parser.add_argument('-selection', nargs=1)
 
-    def handle(self):
-        self.data = self.rfile.readline().strip()
-        response = {'error': False}
-        try:
-            message = json.loads(self.data)
-            debug('message {}', message)
-            if message['command'] == 'copy':
-                desktop.copy(message['content'])
-            elif message['command'] == 'paste':
-                response['content'] = desktop.paste()
-            elif message['command'] == 'open':
-                desktop.open(message['url'])
-        except Exception:
-            response['error'] = True
-            trace = str(sys.exc_info())
-            print(trace)
-            response['message'] = trace
+    args = parser.parse_args()
 
-        payload = json.dumps(response) + '\n'
-        self.wfile.write(bytes(payload, 'utf-8'))
+    if 'DISPLAY' not in environ:
+        args.command = args.mode
+        args.mode = 'client'
+        # TODO: pull from config file.
+        args.port = 8099
+        args.host = 'localhost'
 
-
-def listen(args):
-    server = socketserver.TCPServer((args.host, args.port), ServerHandler)
-    print('Listening on - {}:{}'.format(args.host, args.port))
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.shutdown()
+    return args
 
 
 def request(args, message):
@@ -128,7 +118,12 @@ def send_command(args):
 
 
 def main():
-    args = parse_arguments()
+    script_name = path.basename(sys.argv[0])
+    # TODO: support xsel emulation as well.
+    if script_name == 'xclip':
+        args = parse_xclip_arguments()
+    else:
+        args = parse_arguments()
 
     if args.mode == 'server':
         listen(args)
