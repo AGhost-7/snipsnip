@@ -72,6 +72,33 @@ def parse_xclip_arguments():
     return args
 
 
+def parse_xsel_arguments():
+    parser = ArgumentParser()
+    parser.add_argument(
+        '--clipboard', '-b',
+        action='store_const',
+        default=False,
+        const=True)
+    parser.add_argument(
+        '--output', '-o',
+        action='store_const',
+        const='paste',
+        dest='mode')
+    parser.add_argument(
+        '--input', '-i',
+        action='store_const',
+        const='copy',
+        dest='mode')
+    args = parser.parse_args()
+
+    if 'DISPLAY' not in environ:
+        args.command = args.mode
+        args.mode = 'client'
+        args.port = 8099
+        args.host = 'localhost'
+    return args
+
+
 def request(args, message):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -122,6 +149,8 @@ def main():
     # TODO: support xsel emulation as well.
     if script_name == 'xclip':
         args = parse_xclip_arguments()
+    elif script_name == 'xsel':
+        args = parse_xsel_arguments()
     else:
         args = parse_arguments()
 
