@@ -37,5 +37,7 @@ class X11Desktop(BaseDesktop):
 
 if sys.platform == 'linux':
     desktop = X11Desktop()
-else:
+elif sys.platform == 'darwin':
     desktop = MacOsDesktop()
+else:
+    desktop = BaseDesktop()

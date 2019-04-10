@@ -90,7 +90,6 @@ def parse_xsel_arguments():
         const='copy',
         dest='mode')
     args = parser.parse_args()
-
     if 'DISPLAY' not in environ:
         args.command = args.mode
         args.mode = 'client'
