@@ -65,9 +65,8 @@ def parse_xclip_arguments():
     if 'DISPLAY' not in environ:
         args.command = args.mode
         args.mode = 'client'
-        # TODO: pull from config file.
-        args.port = 8099
-        args.host = 'localhost'
+        args.port = int(environ.get('SNIPSNIP_PORT', 8099))
+        args.host = environ.get('SNIPSNIP_HOST', 'localhost')
 
     return args
 
@@ -93,8 +92,8 @@ def parse_xsel_arguments():
     if 'DISPLAY' not in environ:
         args.command = args.mode
         args.mode = 'client'
-        args.port = 8099
-        args.host = 'localhost'
+        args.port = int(environ.get('SNIPSNIP_PORT', 8099))
+        args.host = environ.get('SNIPSNIP_HOST', 'localhost')
     return args
 
 
